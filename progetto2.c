@@ -165,7 +165,7 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
             printf("\n");
             cont = 0;
         }
-        printf("---------------------------------\n");
+        printf("----------------------------------\n");
     }
     //solo per vedere se funziona:
     for(int i = 0; i < n; i++){
