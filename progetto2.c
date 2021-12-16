@@ -63,7 +63,7 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
     //apertura pipe
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n; j++)
-            if (pipe(fd[i][j]) < 0) return 1; //se e' < 0 allora e' un errore
+            if (pipe(fd[i][j]) < 0) return EXIT_FAILURE; //se e' < 0 allora e' un errore
     }
 
     //creazione processi figli
@@ -71,7 +71,7 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n; j++){
             pid[i][j] = fork();
-            if(pid[i][j] < 0) return 1;
+            if(pid[i][j] < 0) return EXIT_FAILURE;
         }
     }
 
@@ -118,6 +118,9 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
             for(int i = 0; i < n; i++){
                 for(int j = 0; j < n; j++){
                     if(i == j){
+                        
+                        //chiusure servono qui???
+
                         indice = j+c+b;
                         while(indice >= n){
                             indice = indice - n;   
@@ -125,7 +128,7 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
                         C[c][j] = C[c][j] + A[c][indice] * B[indice][cont];
                         printf("posizione A(%d ,%d) B(%d ,%d) --> %d * %d = ", c+1, indice+1, indice+1, cont+1, A[c][indice], B[indice][cont]);
                         printf("%d \n", C[c][j]);
-                        if(write(fd[c][j][WRITE_END], &C[c][j], sizeof(int)) < 0) return 1;
+                        if(write(fd[c][j][WRITE_END], &C[c][j], sizeof(int)) < 0) return EXIT_FAILURE;
                         cont++;
                     }
                 }
@@ -139,7 +142,7 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
     //solo per vedere se funziona:
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n; j++){
-            if(write(fd[i][j][READ_END], &C[i][j], sizeof(int)) < 0) return 1;
+            if(write(fd[i][j][READ_END], &C[i][j], sizeof(int)) < 0) return EXIT_FAILURE;
             printf("%d ", x);
         }
     }
@@ -159,8 +162,10 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
         }
     }
     
-    return 0;
+    return EXIT_SUCCESS;
 }
+
+
 
 int main(void){
     int n = 0;

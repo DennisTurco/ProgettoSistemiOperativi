@@ -13,6 +13,7 @@ int main(void) {
     char read_msg[BUFFER_SIZE];
     int fd[2];
     pid_t pid;
+    
     /* crea la pipe */
     if (pipe(fd) == -1) {
         fprintf(stderr, "Pipe failed");
