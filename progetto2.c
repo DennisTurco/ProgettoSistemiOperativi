@@ -10,7 +10,6 @@
 
 #define READ_END 0
 #define WRITE_END 1
-#define COMMAND_TO_RUN "killall -u dennis"
 
 void stampaSingola(int i, int n, int X[n][n]){
     printf("  | ");
@@ -21,46 +20,10 @@ void stampaSingola(int i, int n, int X[n][n]){
     return;
 }
 
-void stampaTrattino(int n){
-    printf(" ");
-    printf(" ");
-    for (int i=0; i<n; i++){
-        printf("%c", 218);
-        for(int j=0; j < n*2+1-2; j++){
-            printf(" ");
-        }
-        printf("  %c", 191);
-
-        for(int j = 0; j<5; j++){
-            printf(" ");
-        }
-    }
-    printf("\n");
-}
-
-void stampaTrattino2(int n){
-    printf(" ");
-    printf(" ");
-    for (int i=0; i<n; i++){
-        printf("%c", 192);
-        for(int j=0; j < n*2+1-2; j++){
-            printf(" ");
-        }
-        printf("  %c", 217);
-
-        for(int j = 0; j<5; j++){
-            printf(" ");
-        }
-    }
-    printf("\n");
-}
-
 void stampa(int n, int A[n][n], int B[n][n], int C[n][n]){
     bool inserito = false;
     bool inserito2 = false;
     for (int i=0; i<n; i++){
-
-        if (i == 0) stampaTrattino(n);
 
         stampaSingola(i, n, A);
         
@@ -79,7 +42,6 @@ void stampa(int n, int A[n][n], int B[n][n], int C[n][n]){
         stampaSingola(i, n, C);
         printf("\n");
     }
-    stampaTrattino2(n);
     return;
 }
 
@@ -99,9 +61,10 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
     int x;
 
     //apertura pipe
-    for(int i = 0; i < n; i++)
+    for(int i = 0; i < n; i++){
         for(int j = 0; j < n; j++)
             if (pipe(fd[i][j]) < 0) return 1; //se e' < 0 allora e' un errore
+    }
 
     //creazione processi figli
     int pid[n][n];
@@ -120,7 +83,7 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
                 //vari close
                 for(int z = 0; z<n; z++){
                     for(int y = 0; y < n; z++){
-                        if(z != i && y != j){
+                        if(z != i || y != j){
                             close(fd[z][y][READ_END]);
                             close(fd[z][y][WRITE_END]);
                         }
@@ -130,8 +93,14 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
                 close(fd[i][j][READ_END]);
 
                 //operazioni read e write
-                if(read(fd[0][0][READ_END], &x, sizeof(int)) < 0) return 1;
-                if(write(fd[i][j][WRITE_END], &x, sizeof(int)) < 0) return 1;
+                if(read(fd[0][0][READ_END], &x, sizeof(int)) < 0){
+                    close(fd[0][0][READ_END]);
+                    return 1;
+                } 
+                if(write(fd[i][j][WRITE_END], &x, sizeof(int)) < 0){
+                    close(fd[i][j][WRITE_END]);
+                    return 1;
+                } 
 
                 //vari close
                 close(fd[0][0][READ_END]);
@@ -143,19 +112,18 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
 
     //processo genitore
     int cont = 0;
+    int indice = 0;
     for(int b = 0; b < n; b++){
         for(int c = 0; c < n; c++){
             for(int i = 0; i < n; i++){
                 for(int j = 0; j < n; j++){
                     if(i == j){
-                        if(j+c+b >= n){
-                            C[c][j] = C[i][j] + A[c][j+c+b-n] * B[i+c+b-n][cont];
-                            printf("posizione A(%d ,%d) B(%d ,%d) --> ", c+1, j+1+c+b-n, i+1+c+b-n, cont+1);
-                        } 
-                        else{
-                            C[c][j] = C[i][j] + A[c][j+c+b] * B[i+c+b][cont];
-                            printf("posizione A(%d ,%d) B(%d ,%d) --> ", c+1, j+1+c+b, i+1+c+b, cont+1);
-                        } 
+                        indice = j+c+b;
+                        while(indice >= n){
+                            indice = indice - n;   
+                        }
+                        C[c][j] = C[c][j] + A[c][indice] * B[indice][cont];
+                        printf("posizione A(%d ,%d) B(%d ,%d) --> %d * %d = ", c+1, indice+1, indice+1, cont+1, A[c][indice], B[indice][cont]);
                         printf("%d \n", C[c][j]);
                         if(write(fd[c][j][WRITE_END], &C[c][j], sizeof(int)) < 0) return 1;
                         cont++;
@@ -167,11 +135,20 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
         }
         printf("----------------------------------\n");
     }
+    
     //solo per vedere se funziona:
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n; j++){
             if(write(fd[i][j][READ_END], &C[i][j], sizeof(int)) < 0) return 1;
             printf("%d ", x);
+        }
+    }
+
+    //varie close
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j++){
+            close(fd[i][j][WRITE_END]);
+            close(fd[i][j][READ_END]);
         }
     }
 
@@ -181,6 +158,7 @@ int calcolaMatricePipe(int n, int A[n][n], int B[n][n], int C[n][n]){
             waitpid(pid[i][j], NULL, 0);
         }
     }
+    
     return 0;
 }
 
@@ -193,8 +171,8 @@ int main(void){
     FILE *f2 = fopen(nomefile2, "r");
 
     //controllo su possibili fallimenti di apertura dei files
-    if(f1 == NULL) return 1;
-    if(f2 == NULL) return 1;
+    if(f1 == NULL) return EXIT_FAILURE;
+    if(f2 == NULL) return EXIT_FAILURE;
 
     clock_t begin = clock(); /*inizio ciclo di clock*/
 
@@ -224,7 +202,7 @@ int main(void){
     stampa(n, matriceA, matriceB, matriceC);
 
     clock_t end = clock(); /*fine ciclo di clock*/
-    float time_spent = (float)(end - begin)/100;
+    float time_spent = (float)(end - begin)/CLOCKS_PER_SEC;
     printf("\nTempo Impiegato: %f ms", time_spent);
 
     printf("\n----------------------------------------------------\n");
@@ -233,7 +211,5 @@ int main(void){
     fclose(f1);
     fclose(f2);
 
-    system(COMMAND_TO_RUN);
-
-    return 0;
+    return EXIT_SUCCESS;
 }
